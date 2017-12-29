@@ -3,10 +3,99 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:sync="http://schemas.syncfusion.com/wpf"
         xmlns:local="clr-namespace:Simple_Scaler_2"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
-    <Grid>
-        
-    </Grid>
+        Title="Simple Scaler 2" Height="500" Width="750" WindowState="Maximized" Icon="if_scale_image_64614.ico">
+    <Window.DataContext>
+        <local:MainWindowViewModel />
+    </Window.DataContext>
+    <Border Margin="10" BorderThickness="2" BorderBrush="Black">
+        <sync:SfBusyIndicator IsBusy="{Binding IsBusy}" Header="{Binding BusyLabel}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <ComboBox Grid.Row="0" Grid.Column="1" Margin="5" HorizontalAlignment="Left" />
+                <ComboBox Grid.Row="0" Grid.Column="1" Margin="5" HorizontalAlignment="Right" />
+                <CheckBox Content="Checker?" Grid.Row="0" Grid.Column="5" Margin="5" HorizontalAlignment="Left"
+                          VerticalAlignment="Center" IsChecked="{Binding Checker}" />
+                <Button Grid.Row="0" Grid.Column="5" Margin="5" HorizontalAlignment="Right" Content="Ausgeben" />
+                <Button Grid.Row="0" Grid.Column="5" Margin="5" HorizontalAlignment="Center" Content="Vorschau" />
+                <local:ButtonControl Grid.Row="1" Grid.Column="0" Margin="5" ButtonClickEvent="RandUpper" />
+                <local:DisplayingIntergerTextBox Grid.Column="1" Grid.Row="1" MinWidth="50" VerticalAlignment="Center"
+                                                 Value="{Binding Rand1Y}"
+                                                 HorizontalAlignment="Left" Margin="5" Orientation="Horizontal"
+                                                 LabelText="{Binding Rand1YLabel}" />
+                <local:DisplayingIntergerTextBox Grid.Column="0" Grid.Row="2" MinWidth="50" VerticalAlignment="Top"
+                                                 Value="{Binding Rand1X}"
+                                                 HorizontalAlignment="Center" Margin="5" Orientation="Vertical"
+                                                 LabelText="{Binding Rand1XLabel}" />
+                <Image Grid.Column="1" Grid.Row="2" Margin="5" />
+                <local:ButtonControl Grid.Column="2" Grid.Row="3" Margin="5" ButtonClickEvent="RandLower" />
+                <local:DisplayingIntergerTextBox Grid.Column="1" Grid.Row="3" Margin="5" VerticalAlignment="Center"
+                                                 Value="{Binding Rand2Y}"
+                                                 HorizontalAlignment="Right" MinWidth="50" Orientation="Horizontal"
+                                                 LabelText="{Binding Rand2YLabel}" />
+                <local:DisplayingIntergerTextBox Grid.Column="2" Grid.Row="2" MinWidth="50" VerticalAlignment="Bottom"
+                                                 Value="{Binding Rand2X}"
+                                                 HorizontalAlignment="Center" Margin="5" Orientation="Vertical"
+                                                 LabelText="{Binding Rand2XLabel}" />
+                <local:ButtonControl Grid.Column="4" Grid.Row="1" Margin="5" ButtonClickEvent="KorLeftUpper" />
+                <local:DisplayingIntergerTextBox Grid.Column="5" Grid.Row="1" Margin="5" VerticalAlignment="Center"
+                                                 Value="{Binding Kor1Y}"
+                                                 HorizontalAlignment="Left" MinWidth="50" Orientation="Horizontal"
+                                                 LabelText="{Binding Kor1YLabel}" />
+                <local:DisplayingIntergerTextBox Grid.Column="5" Grid.Row="1" Margin="5" VerticalAlignment="Center"
+                                                 Value="{Binding Kor2Y}"
+                                                 HorizontalAlignment="Right" MinWidth="50" Orientation="Horizontal"
+                                                 LabelText="{Binding Kor2YLabel}" />
+                <local:ButtonControl Grid.Column="6" Grid.Row="1" Margin="5" ButtonClickEvent="KorRightUpper" />
+                <local:DisplayingIntergerTextBox Grid.Column="4" Grid.Row="2" Margin="5" VerticalAlignment="Top"
+                                                 Value="{Binding Kor1X}"
+                                                 HorizontalAlignment="Center" MinWidth="50" Orientation="Vertical"
+                                                 LabelText="{Binding Kor1XLabel}" />
+                <local:DisplayingIntergerTextBox Grid.Column="6" Grid.Row="2" Margin="5" VerticalAlignment="Top"
+                                                 Value="{Binding Kor2X}"
+                                                 HorizontalAlignment="Center" MinWidth="50" Orientation="Vertical"
+                                                 LabelText="{Binding Kor2XLabel}" />
+                <local:DisplayingIntergerTextBox Grid.Column="4" Grid.Row="2" Margin="5" VerticalAlignment="Bottom"
+                                                 Value="{Binding Kor3X}"
+                                                 HorizontalAlignment="Center" MinWidth="50" Orientation="Vertical"
+                                                 LabelText="{Binding Kor3XLabel}" />
+                <local:DisplayingIntergerTextBox Grid.Column="6" Grid.Row="2" Margin="5" VerticalAlignment="Bottom"
+                                                 Value="{Binding Kor4X}"
+                                                 HorizontalAlignment="Center" MinWidth="50" Orientation="Vertical"
+                                                 LabelText="{Binding Kor4XLabel}" />
+                <local:ButtonControl Grid.Column="4" Grid.Row="3" Margin="5" ButtonClickEvent="KorLeftLower" />
+                <local:ButtonControl Grid.Column="6" Grid.Row="3" Margin="5" ButtonClickEvent="KorRightLower" />
+                <local:DisplayingIntergerTextBox Grid.Column="5" Grid.Row="3" Margin="5" VerticalAlignment="Center"
+                                                 Value="{Binding Kor3Y}"
+                                                 HorizontalAlignment="Left" MinWidth="50" Orientation="Horizontal"
+                                                 LabelText="{Binding Kor3YLabel}" />
+                <local:DisplayingIntergerTextBox Grid.Column="5" Grid.Row="3" Margin="5" VerticalAlignment="Center"
+                                                 Value="{Binding Kor4Y}"
+                                                 HorizontalAlignment="Right" MinWidth="50" Orientation="Horizontal"
+                                                 LabelText="{Binding Kor4YLabel}" />
+                <Image Grid.Column="5" Grid.Row="2" Margin="5" />
+                <Button Content="Einstellungen" Grid.Row="4" Grid.Column="5" HorizontalAlignment="Right" Margin="5" />
+                <TextBlock Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="5" TextWrapping="Wrap" />
+                <Rectangle Grid.Column="3" Grid.Row="0" Grid.RowSpan="5" HorizontalAlignment="Center"
+                           VerticalAlignment="Stretch" Width="2" Stroke="Black" />
+            </Grid>
+        </sync:SfBusyIndicator>
+    </Border>
 </Window>
