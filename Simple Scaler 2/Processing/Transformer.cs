@@ -25,7 +25,7 @@ namespace Simple_Scaler_2.Processing
             var dirInfo = new DirectoryInfo(folderPath);
             try
             {
-                var unused = dirInfo.GetAccessControl(AccessControlSections.All);
+                var unused = dirInfo.GetAccessControl(AccessControlSections.Access);
                 return true;
             }
             catch (PrivilegeNotHeldException)
@@ -55,9 +55,9 @@ namespace Simple_Scaler_2.Processing
         private int Iterate(int first, int second, MagickColor baseColor, Func<int, int, Pixel> getPixel, bool revers = false)
         {
             if (!revers)
-                for (var i = 0; i < first; i++)
+                for (var i = 0; i < first; i += 3)
                 {
-                    for (var j = 0; j < second; j++)
+                    for (var j = 0; j < second; j += 3)
                     {
                         if (getPixel(i, j).ToColor() == baseColor) continue;
 
@@ -65,9 +65,9 @@ namespace Simple_Scaler_2.Processing
                     }
                 }
             else
-                for (var i = first; i >= 0; i--)
+                for (var i = first; i >= 0; i -= 3)
                 {
-                    for (var j = 0; j < second; j++)
+                    for (var j = 0; j < second; j += 3)
                     {
                         if (getPixel(i, j).ToColor() == baseColor) continue;
 
@@ -172,13 +172,14 @@ namespace Simple_Scaler_2.Processing
         {
             return Protect(() =>
                            {
+                               var writeDate = File.GetLastWriteTime(info.FilePath);
                                var resolution = Settings.Default.Resolution;
 
                                if (info.IsCorrectResolution && info.IsCorrectType && info.IsSingleLayer)
-                                   return Result.Create(new PreparedImageFileInfo(info.FilePath, info, FindSettings(info, info.FilePath)), true);
+                                   return Result.Create(new PreparedImageFileInfo(info.FilePath, info, FindSettings(info, info.FilePath), writeDate), true);
 
                                var realPath = Path.Combine(Path.GetDirectoryName(info.FilePath) ?? throw new InvalidOperationException(),
-                                                           "Prep", Path.GetFileNameWithoutExtension(info.FilePath) + ".tiff");
+                                                           "Prep", Path.GetFileName(info.FilePath) + ".tiff");
                                var folder = Path.GetDirectoryName(realPath) ?? throw new InvalidOperationException();
                                if (!Directory.Exists(folder))
                                    Directory.CreateDirectory(folder);
@@ -204,10 +205,12 @@ namespace Simple_Scaler_2.Processing
                                        img.Level(new Percentage(60), new Percentage(61));
                                    }
 
+
+                                   img.Settings.Compression = Compression.LZW; //.SetDefine("compress", "LZW");
                                    img.Write(realPath);
                                }
 
-                               return Result.Create(new PreparedImageFileInfo(realPath, info, FindSettings(info, realPath)), true);
+                               return Result.Create(new PreparedImageFileInfo(realPath, info, FindSettings(info, realPath), writeDate), true);
                            });
         }
 
@@ -281,10 +284,10 @@ namespace Simple_Scaler_2.Processing
                                                                  // ReSharper disable once AccessToDisposedClosure
                                                                  var innerImg = img;
 
-                                                                 var randOpx = rand1Y / 25.4 * 360;
-                                                                 var randUpx = rand2Y / 25.4 * 360;
-                                                                 var randLpx = rand1X / 25.4 * 360;
-                                                                 var randRpx = rand2X / 25.4 * 360;
+                                                                 var randOpx = rand1Y / prevRes * fullRes;
+                                                                 var randUpx = rand2Y / prevRes * fullRes;
+                                                                 var randLpx = rand1X / prevRes * fullRes;
+                                                                 var randRpx = rand2X / prevRes * fullRes;
 
                                                                  double[] perspectiveDistort =
                                                                  {
@@ -296,13 +299,17 @@ namespace Simple_Scaler_2.Processing
                                                                  innerImg.FilterType  = FilterType.Point;
                                                                  innerImg.Distort(DistortMethod.BilinearForward, perspectiveDistort);
 
-                                                                 using (var cimg = checker())
+                                                                 if(settings.Checker)
                                                                  {
-                                                                     cimg.Density    = new Density(360, 360, DensityUnit.PixelsPerInch);
-                                                                     cimg.FilterType = FilterType.Point;
-                                                                     innerImg.Tile(cimg, CompositeOperator.Plus);
+                                                                     using (var cimg = checker())
+                                                                     {
+                                                                         cimg.Density    = new Density(fullRes, fullRes, DensityUnit.PixelsPerInch);
+                                                                         cimg.FilterType = FilterType.Point;
+                                                                         innerImg.Tile(cimg, CompositeOperator.Plus);
+                                                                     }
                                                                  }
 
+                                                                 innerImg.Settings.Compression = Compression.NoCompression;
                                                                  innerImg.Write(target);
                                                              });
 
@@ -346,11 +353,11 @@ namespace Simple_Scaler_2.Processing
                                                widht  = prevImg.Width;
                                                height = prevImg.Height;
 
+                                               prevImg.Resample(prevRes, prevRes);
+
                                                prevImg.ColorSpace = ColorSpace.RGB;
                                                prevImg.Format     = MagickFormat.Png;
                                                prevImg.Quality    = 50;
-
-                                               prevImg.Resample(prevRes, prevRes);
 
                                                return prevImg;
                                            });

@@ -1,13 +1,24 @@
 ﻿using System;
+using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Threading;
 using DevExpress.Mvvm;
+using DevExpress.Mvvm.DataAnnotations;
+using JetBrains.Annotations;
+using Simple_Scaler_2.Processing;
 
 namespace Simple_Scaler_2
 {
     public class MainWindowViewModel : ViewModelBase
     {
         #region Common
+
+        private readonly Dispatcher _dispatcher = Application.Current.Dispatcher;
 
         public bool IsBusy
         {
@@ -21,7 +32,7 @@ namespace Simple_Scaler_2
             set => SetProperty(() => BusyLabel, value);
         }
 
-        private void RunOperation(Action action, string title)
+        private void RunOperation(string title, Action action)
         {
             IsBusy    = true;
             BusyLabel = title;
@@ -35,6 +46,9 @@ namespace Simple_Scaler_2
 
         protected override void OnInitializeInRuntime()
         {
+            _fileManager = new FileManager(_transformer);
+            _transformer.PreviewGeneratedEvent += TransformerOnPreviewGeneratedEvent;
+
             Rand1X = 0;
             Rand2X = 0;
 
@@ -53,6 +67,24 @@ namespace Simple_Scaler_2
             Kor4X = 0;
             Kor4Y = 0;
 
+            if (!_fileManager.IsPathValid())
+            {
+                RunOperation("Starting", () =>
+                                         {
+                                             do
+                                             {
+                                                 MessageBox.Show("Verzeichnisspfade sind Ungültig!", "Fehler");
+                                                 _dispatcher.BeginInvoke(new Action(() =>new SettingsWindow.SettingsWindow {WindowStartupLocation = WindowStartupLocation.CenterScreen}.ShowDialog()))
+                                                            .Wait();
+
+                                             } while (!_fileManager.IsPathValid());
+
+                                             _fileManager.Initialize();
+                                         });
+            }
+            else
+                _fileManager.Initialize();
+
             base.OnInitializeInRuntime();
         }
 
@@ -61,6 +93,9 @@ namespace Simple_Scaler_2
             get => GetProperty(() => Checker);
             set => SetProperty(() => Checker, value);
         }
+
+        [Command, UsedImplicitly]
+        public void ShowSettings() => new SettingsWindow.SettingsWindow {Owner = Application.Current.MainWindow, WindowStartupLocation = WindowStartupLocation.CenterOwner}.ShowDialog();
 
         #endregion
 
@@ -87,6 +122,39 @@ namespace Simple_Scaler_2
             Kor4YLabel = Kor4Y.ToString();
         }
 
+        private void SetTransformSettings(TransformSettings settings)
+        {
+            Checker = settings.Checker;
+            Rand1X = settings.Rand1X;
+            Rand1Y = settings.Rand1Y;
+            Rand2X = settings.Rand2X;
+            Rand2Y = settings.Rand2Y;
+            Kor1X = settings.Kor1X;
+            Kor1Y = settings.Kor1Y;
+            Kor2X = settings.Kor2X;
+            Kor2Y = settings.Kor2Y;
+            Kor3X = settings.Kor3X;
+            Kor3Y = settings.Kor3Y;
+            Kor4X = settings.Kor4X;
+            Kor4Y = settings.Kor4Y;
+        }
+
+        private void FillTransformSettings(TransformSettings settings)
+        {
+            settings.Checker                    = Checker;
+            if (Rand1X != null) settings.Rand1X = (int) Rand1X;
+            if (Rand1Y != null) settings.Rand1Y = (int) Rand1Y;
+            if (Rand2X != null) settings.Rand2X = (int) Rand2X;
+            if (Rand2Y != null) settings.Rand2Y = (int) Rand2Y;
+            if (Kor1X != null) settings.Kor1X   = (int) Kor1X;
+            if (Kor1Y != null) settings.Kor1Y   = (int) Kor1Y;
+            if (Kor2X != null) settings.Kor2X   = (int) Kor2X;
+            if (Kor2Y != null) settings.Kor2Y   = (int) Kor2Y;
+            if (Kor3X != null) settings.Kor3X   = (int) Kor3X;
+            if (Kor3Y != null) settings.Kor3Y   = (int) Kor3Y;
+            if (Kor4X != null) settings.Kor4X   = (int) Kor4X;
+            if (Kor4Y != null) settings.Kor4Y   = (int) Kor4Y;
+        }
 
         public long? Rand1X
         {
@@ -286,5 +354,220 @@ namespace Simple_Scaler_2
         public void KorRightLower(ButtenControlClickType clickType) => UpdatePos(clickType, () => Kor4X, () => Kor4Y);
 
         #endregion
+
+        private readonly Transformer _transformer = new Transformer();
+        private FileManager _fileManager;
+        private Folder _selectedFolder;
+        private ImageFile _imageFile;
+        private bool _selectionValid = true;
+
+        public ImageSource PreviewLeft
+        {
+            get => GetProperty(() => PreviewLeft);
+            set => SetProperty(() => PreviewLeft, value);
+        }
+
+        public ImageSource PreviewRight
+        {
+            get => GetProperty(() => PreviewRight);
+            set => SetProperty(() => PreviewRight, value);
+        }
+
+        public ObservableCollection<Folder> Folders => _fileManager.Folders;
+
+        public ObservableCollection<ImageFile> Files => _fileManager.Files;
+
+        public Folder SelectedFolder
+        {
+            get => _selectedFolder;
+            set { _selectedFolder = value;
+                OnFolderChanged();
+            }
+        }
+
+        public ImageFile SelectedImageFile
+        {
+            get => _imageFile;
+            set { _imageFile = value;
+                OnFileChanged();
+            }
+        }
+
+        public string Log
+        {
+            get => GetProperty(() => Log);
+            set => SetProperty(() => Log, value);
+        }
+
+        private void OnFileChanged()
+        {
+            RunOperation("Vorbereitung", () =>
+                                                    {
+                                                        _selectionValid = true;
+                                                        Log = string.Empty;
+                                                        ImageFile file = SelectedImageFile;
+                                                        if (file == null)
+                                                        {
+                                                            PreviewLeft = null;
+                                                            PreviewRight = null;
+                                                            return;
+                                                        }
+                                                        FormatFileInfo(file.FileInfo);
+                                                        if(!file.FileInfo.IsAccesible) return;
+
+                                                        file.Prepare();
+
+                                                        if (file.Error != null)
+                                                        {
+                                                            Log += "Fehler: " + file.Error.GetType() + Environment.NewLine;
+                                                            Log += "\t" + file.Error.Message + Environment.NewLine;
+                                                        }
+                                                        else
+                                                        {
+                                                            var settings = file.PreparedFileInfo.TransformSettings;
+                                                            SetTransformSettings(settings);
+                                                            UpdateLabels();
+
+                                                            BusyLabel = "Vorschau wird Generiert";
+                                                            var result = _transformer.GeneratePreview(file.PreparedFileInfo.RealFile, settings);
+
+                                                            switch (result)
+                                                            {
+                                                                case ExceptionResult exceptionResult:
+                                                                    Log += "Fehler: " + exceptionResult.Exception.GetType() + Environment.NewLine;
+                                                                    Log += "\t" + exceptionResult.Exception.Message + Environment.NewLine;
+                                                                    break;
+                                                                case GenericResult<bool> boolResult:
+                                                                    if (boolResult.Result)
+                                                                    {
+                                                                        Log               += "Fertig" + Environment.NewLine;
+                                                                        _selectionValid =  true;
+                                                                    }
+                                                                    else
+                                                                        Log += "Fehler" + Environment.NewLine;
+                                                                    break;
+                                                            }
+                                                        }
+
+                                                        _dispatcher.Invoke(CommandManager.InvalidateRequerySuggested);
+                                                    });
+        }
+
+        private void OnFolderChanged() => RunOperation("Daten Werden Gelesen", () => _fileManager.ReadFiles(SelectedFolder));
+
+        private void TransformerOnPreviewGeneratedEvent(object sender, PreviewGeneratedEventArgs previewGeneratedEventArgs)
+        {
+            PreviewLeft = previewGeneratedEventArgs.PreviewLeft;
+            PreviewRight = previewGeneratedEventArgs.PreviewRight;
+        }
+
+        private void FormatFileInfo(ImageFileInfo info)
+        {
+            if (!info.IsAccesible)
+            {
+                Log += "Kein Zugriff";
+                return;
+            }
+            
+            if (!info.IsCorrectResolution)
+            {
+                if (info.IsResolutionUnKnowen)
+                    Log += "Unbekannte Auflösung" + Environment.NewLine;
+                else
+                    Log += "Auflösung ist nicht Richtig" + Environment.NewLine;
+            }
+            if (!info.IsGreyScale)
+                Log += "Die Datei ist nicht in Graustufen." + Environment.NewLine;
+            if (!info.IsCorrectType)
+                Log += "Die Datei ist keine Tiff-Datei." + Environment.NewLine;
+            if (!info.IsSingleLayer)
+                Log += "Die Datei hat mehrere Ebenen." + Environment.NewLine;
+        }
+
+        [Command, UsedImplicitly]
+        public void GeneratePreview()
+        {
+            RunOperation("Vorschau wird Generiert", () =>
+                                                    {
+                                                        Log          = string.Empty;
+                                                        var settings = SelectedImageFile.PreparedFileInfo.TransformSettings;
+                                                        FillTransformSettings(settings);
+                                                        UpdateLabels();
+
+                                                        var result = _transformer.GeneratePreview(SelectedImageFile.PreparedFileInfo.RealFile, settings);
+
+                                                        switch (result)
+                                                        {
+                                                            case ExceptionResult exceptionResult:
+                                                                Log += "Fehler: " + exceptionResult.Exception.GetType() + Environment.NewLine;
+                                                                Log += "\t" + exceptionResult.Exception.Message + Environment.NewLine;
+                                                                break;
+                                                            case GenericResult<bool> boolResult:
+                                                                if (boolResult.Result)
+                                                                {
+                                                                    Log               += "Fertig" + Environment.NewLine;
+                                                                    _selectionValid =  true;
+                                                                }
+                                                                else
+                                                                    Log += "Fehler" + Environment.NewLine;
+
+                                                                break;
+                                                        }
+                                                    });
+        }
+
+        [UsedImplicitly]
+        public bool CanGeneratePreview() => _selectionValid;
+
+        [Command, UsedImplicitly]
+        public void TransformFile()
+        {
+            RunOperation("Datei wird erstellt", () =>
+                                                    {
+                                                        _selectionValid = false;
+                                                        Log          = string.Empty;
+                                                        var settings = SelectedImageFile.PreparedFileInfo.TransformSettings;
+                                                        FillTransformSettings(settings);
+                                                        UpdateLabels();
+
+                                                        var result = _transformer.Transform(SelectedImageFile.PreparedFileInfo.RealFile, GetTransformPath(SelectedImageFile), settings);
+
+                                                        switch (result)
+                                                        {
+                                                            case ExceptionResult exceptionResult:
+                                                                Log += "Fehler: " + exceptionResult.Exception.GetType() + Environment.NewLine;
+                                                                Log += "\t" + exceptionResult.Exception.Message + Environment.NewLine;
+                                                                break;
+                                                            case GenericResult<bool> boolResult:
+                                                                if (boolResult.Result)
+                                                                {
+                                                                    Log               += "Fertig" + Environment.NewLine;
+                                                                    _selectionValid =  true;
+                                                                }
+                                                                else
+                                                                    Log += "Fehler" + Environment.NewLine;
+
+                                                                break;
+                                                        }
+                                                    });
+        }
+
+        [UsedImplicitly]
+        public bool CanTransformFile() => _selectionValid;
+
+        private string GetTransformPath(ImageFile file)
+        {
+            string targetPath = Properties.Settings.Default.TargetPath;
+
+            if (!Directory.Exists(targetPath))
+                Directory.CreateDirectory(targetPath);
+
+            targetPath = Path.Combine(targetPath, file.Folder.Name);
+
+            if (!Directory.Exists(targetPath))
+                Directory.CreateDirectory(targetPath);
+
+            return Path.Combine(targetPath, Path.GetFileNameWithoutExtension(file.Name) + "_out.tiff");
+        }
     }
 }

@@ -5,14 +5,20 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:sync="http://schemas.syncfusion.com/wpf"
         xmlns:local="clr-namespace:Simple_Scaler_2"
+        xmlns:local2="clr-namespace:Simple_Scaler_2.Processing"
         mc:Ignorable="d"
         Title="Simple Scaler 2" Height="500" Width="750" WindowState="Maximized" Icon="if_scale_image_64614.ico">
     <Window.DataContext>
         <local:MainWindowViewModel />
     </Window.DataContext>
     <Border Margin="10" BorderThickness="2" BorderBrush="Black">
-        <sync:SfBusyIndicator IsBusy="{Binding IsBusy}" Header="{Binding BusyLabel}">
+        <sync:SfBusyIndicator IsBusy="{Binding IsBusy}" Header="{Binding BusyLabel}" AnimationType="SingleCircle">
             <Grid>
+                <Grid.Resources>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Foreground" Value="Black"/>
+                    </Style>
+                </Grid.Resources>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition />
@@ -29,12 +35,25 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <ComboBox Grid.Row="0" Grid.Column="1" Margin="5" HorizontalAlignment="Left" />
-                <ComboBox Grid.Row="0" Grid.Column="1" Margin="5" HorizontalAlignment="Right" />
+                <ComboBox Grid.Row="0" Grid.Column="1" Margin="5" HorizontalAlignment="Left" MinWidth="170" Panel.ZIndex="1" ItemsSource="{Binding Files}" 
+                          SelectedItem="{Binding SelectedImageFile}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate DataType="local2:ImageFile">
+                            <TextBlock Text="{Binding Name}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <ComboBox Grid.Row="0" Grid.Column="1" Margin="5" HorizontalAlignment="Right" MinWidth="170" ItemsSource="{Binding Folders}" SelectedItem="{Binding SelectedFolder}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate DataType="local2:Folder">
+                            <TextBlock Text="{Binding Name}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
                 <CheckBox Content="Checker?" Grid.Row="0" Grid.Column="5" Margin="5" HorizontalAlignment="Left"
                           VerticalAlignment="Center" IsChecked="{Binding Checker}" />
-                <Button Grid.Row="0" Grid.Column="5" Margin="5" HorizontalAlignment="Right" Content="Ausgeben" />
-                <Button Grid.Row="0" Grid.Column="5" Margin="5" HorizontalAlignment="Center" Content="Vorschau" />
+                <Button Grid.Row="0" Grid.Column="5" Margin="5" HorizontalAlignment="Right" Content="Ausgeben" Command="{Binding TransformFileCommand}"/>
+                <Button Grid.Row="0" Grid.Column="5" Margin="5" HorizontalAlignment="Center" Content="Vorschau" Command="{Binding GeneratePreviewCommand}"/>
                 <local:ButtonControl Grid.Row="1" Grid.Column="0" Margin="5" ButtonClickEvent="RandUpper" />
                 <local:DisplayingIntergerTextBox Grid.Column="1" Grid.Row="1" MinWidth="50" VerticalAlignment="Center"
                                                  Value="{Binding Rand1Y}"
@@ -44,7 +63,7 @@
                                                  Value="{Binding Rand1X}"
                                                  HorizontalAlignment="Center" Margin="5" Orientation="Vertical"
                                                  LabelText="{Binding Rand1XLabel}" />
-                <Image Grid.Column="1" Grid.Row="2" Margin="5" />
+                <Image Grid.Column="1" Grid.Row="2" Margin="5" Source="{Binding PreviewLeft}"/>
                 <local:ButtonControl Grid.Column="2" Grid.Row="3" Margin="5" ButtonClickEvent="RandLower" />
                 <local:DisplayingIntergerTextBox Grid.Column="1" Grid.Row="3" Margin="5" VerticalAlignment="Center"
                                                  Value="{Binding Rand2Y}"
@@ -90,11 +109,13 @@
                                                  Value="{Binding Kor4Y}"
                                                  HorizontalAlignment="Right" MinWidth="50" Orientation="Horizontal"
                                                  LabelText="{Binding Kor4YLabel}" />
-                <Image Grid.Column="5" Grid.Row="2" Margin="5" />
-                <Button Content="Einstellungen" Grid.Row="4" Grid.Column="5" HorizontalAlignment="Right" Margin="5" />
-                <TextBlock Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="5" TextWrapping="Wrap" />
-                <Rectangle Grid.Column="3" Grid.Row="0" Grid.RowSpan="5" HorizontalAlignment="Center"
-                           VerticalAlignment="Stretch" Width="2" Stroke="Black" />
+                <Image Grid.Column="5" Grid.Row="2" Margin="5" Source="{Binding PreviewRight}"/>
+                <Button Content="Einstellungen" Grid.Row="4" Grid.Column="5" HorizontalAlignment="Right" Margin="5" Command="{Binding ShowSettingsCommand}" VerticalAlignment="Bottom"/>
+                <TextBlock Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="5" TextWrapping="Wrap" Text="{Binding Log}" MaxHeight="120" Height="120"
+                           ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="5" 
+                           ScrollViewer.CanContentScroll="True"/>
+<!--                <Rectangle Grid.Column="3" Grid.Row="0" Grid.RowSpan="5" HorizontalAlignment="Center"
+                           VerticalAlignment="Stretch" Width="1" Stroke="Black" />-->
             </Grid>
         </sync:SfBusyIndicator>
     </Border>

@@ -4,6 +4,7 @@
     {
         public GenericResult(TType result, bool success) : base(success)
         {
+            Result = result;
         }
 
         public TType Result { get; }

@@ -1,0 +1,39 @@
+﻿<Window x:Class="Simple_Scaler_2.SettingsWindow.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:sync="http://schemas.syncfusion.com/wpf"
+        xmlns:local="clr-namespace:Simple_Scaler_2.SettingsWindow"
+        mc:Ignorable="d"
+        Title="Einstellungen" Height="300" Width="400" Closed="SettingsWindow_OnClosed">
+    <Window.DataContext>
+        <local:SettingsWindowViewModel/>
+    </Window.DataContext>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Column="0" Grid.Row="0" VerticalAlignment="Center" Text="Zielpfad:" Margin="5"/>
+        <TextBox Text="{Binding TargetPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" Grid.Row="0" Margin="5"/>
+        <Button Content="..." Grid.Column="2" Grid.Row="0" Margin="5" Command="{Binding GetTargetPathCommand}"/>
+        <TextBlock Text="Quellpfad:" Grid.Column="0" Grid.Row="1" Margin="5" VerticalAlignment="Center"/>
+        <TextBox Text="{Binding SourcePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" Grid.Row="1" Margin="5"/>
+        <Button Content="..." Grid.Column="2" Grid.Row="1" Margin="5" Command="{Binding GetSourcePathCommand}"/>
+        <TextBlock Text="Auflösung:" Grid.Column="0" Grid.Row="2" Margin="5" VerticalAlignment="Center"/>
+        <sync:DoubleTextBox Grid.Column="1" Grid.Row="2" Margin="5" Value="{Binding Resolution, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="10" MaxValue="1000"/>
+        <TextBlock Text="Vorschau Auflösung:" Grid.Column="0" Grid.Row="3" Margin="5" VerticalAlignment="Center"/>
+        <sync:DoubleTextBox Grid.Column="1" Grid.Row="3" Margin="5" Value="{Binding PrevResolution, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinValue="10" MaxValue="100"/>
+        <Button Content="Save" Grid.Row="4" Grid.Column="2" Margin="5" VerticalAlignment="Bottom" Click="SaveClick"/>
+        <Button Content="Abbrechen" Grid.Row="4" Grid.Column="1" Margin="5" VerticalAlignment="Bottom" HorizontalAlignment="Right" Click="CancelClick"></Button>
+    </Grid>
+</Window>
