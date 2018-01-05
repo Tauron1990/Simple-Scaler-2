@@ -1,8 +1,9 @@
-﻿using JetBrains.Annotations;
+﻿using System;
+using JetBrains.Annotations;
 
 namespace Simple_Scaler_2.Processing
 {
-    [PublicAPI]
+    [PublicAPI, Serializable]
     public sealed class ImageFileInfo
     {
         public ImageFileInfo(bool isSingleLayer, bool isCorrectResolution, bool isCorrectType, string filePath, bool isAccesible, bool isResolutionUnKnowen, bool isGreyScale)

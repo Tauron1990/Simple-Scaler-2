@@ -94,9 +94,9 @@ namespace Simple_Scaler_2.Processing
                                                          });
         }
 
-        public TransformSettings FindSettings(ImageFileInfo info, string realPath)
+        public TransformSettings FindSettings(string basePath, ImageFileInfo info, string realPath)
         {
-            var settingsPath = info.FilePath + ".jvs";
+            var settingsPath = Path.Combine(basePath, info.FilePath.TrimStart('\\') + ".jvs");
             if (File.Exists(settingsPath))
                 try
                 {
@@ -136,53 +136,87 @@ namespace Simple_Scaler_2.Processing
             return newSettings;
         }
 
-        public Result GetInfo(string path)
+        public Result GetInfo(string basePath, string relativePath)
         {
             return Protect(() =>
                            {
-                               var settings = Settings.Default;
-
-                               var isSingleLayer = false;
-
-                               var isAccesible = CheckFolderPermission(Path.GetDirectoryName(path));
-                               if (isAccesible)
-                                   isAccesible = File.Exists(path);
-
-                               if (!isAccesible) return Result.Create(new ImageFileInfo(false, false, false, path, false, false, false), false);
-
-                               var infos = new List<IMagickImageInfo>(MagickImageInfo.ReadCollection(path));
-
-                               if (infos.Count == 1)
-                                   isSingleLayer = true;
-
-                               var des = infos[0].Density;
-                               // ReSharper disable CompareOfFloatsByEqualityOperator
-                               var isCorrectResolution  = des.X == settings.Resolution && des.Y == settings.Resolution;
-                               var isResolutionUnKnowen = !isCorrectResolution && des.X == 0d && des.Y == 0d;
-                               // ReSharper restore CompareOfFloatsByEqualityOperator
-
-                               var isCorrectType = infos[0].Format == MagickFormat.Tiff || infos[0].Format == MagickFormat.Tif;
-                               var isGrayScale   = infos[0].ColorSpace == ColorSpace.Gray;
-
-                               return Result.Create(new ImageFileInfo(isSingleLayer, isCorrectResolution, isCorrectType, path, true, isResolutionUnKnowen, isGrayScale), true);
+                               var info = GetInfoImpl(basePath, relativePath);
+                               return Result.Create(info, info.IsAccesible);
                            });
         }
 
-        public Result PrepareFile(ImageFileInfo info)
+        private ImageFileInfo GetInfoImpl(string basePath, string relativePath)
+        {
+            var path     = Path.Combine(basePath, relativePath.TrimStart('\\'));
+            var settings = Settings.Default;
+
+            var isSingleLayer = false;
+
+            var isAccesible = CheckFolderPermission(Path.GetDirectoryName(path));
+            if (isAccesible)
+                isAccesible = File.Exists(path);
+
+            if (!isAccesible) return new ImageFileInfo(false, false, false, relativePath, false, false, false);
+
+            var infos = new List<IMagickImageInfo>(MagickImageInfo.ReadCollection(path));
+
+            if (infos.Count == 1)
+                isSingleLayer = true;
+
+            var des = infos[0].Density;
+            // ReSharper disable CompareOfFloatsByEqualityOperator
+            var isCorrectResolution  = des.X == settings.Resolution && des.Y == settings.Resolution;
+            var isResolutionUnKnowen = !isCorrectResolution && des.X == 0d && des.Y == 0d;
+            // ReSharper restore CompareOfFloatsByEqualityOperator
+
+            var isCorrectType = infos[0].Format == MagickFormat.Tiff || infos[0].Format == MagickFormat.Tif;
+            var isGrayScale   = infos[0].ColorSpace == ColorSpace.Gray;
+
+            return new ImageFileInfo(isSingleLayer, isCorrectResolution, isCorrectType, relativePath, true, isResolutionUnKnowen, isGrayScale);
+        }
+
+        public string GetPreparationPath(string basePath, ImageFileInfo info)
+        {
+            
+            return Path.Combine(basePath, Path.GetDirectoryName(info.FilePath) ?? throw new InvalidOperationException(),
+                                        "Prep", Path.GetFileName(info.FilePath) + ".tiff");
+        }
+
+        public Result PrepareFile(string basePath, ImageFileInfo info)
         {
             return Protect(() =>
                            {
-                               var writeDate = File.GetLastWriteTime(info.FilePath);
+                               info = GetInfoImpl(basePath, info.FilePath);
+                               var realPath = Path.Combine(basePath, info.FilePath.TrimStart('\\'));
                                var resolution = Settings.Default.Resolution;
 
                                if (info.IsCorrectResolution && info.IsCorrectType && info.IsSingleLayer)
-                                   return Result.Create(new PreparedImageFileInfo(info.FilePath, info, FindSettings(info, info.FilePath), writeDate), true);
+                                   return Result.Create(new PreparedImageFileInfo(info.FilePath, info, FindSettings(basePath, info, info.FilePath)), true);
 
-                               var realPath = Path.Combine(Path.GetDirectoryName(info.FilePath) ?? throw new InvalidOperationException(),
-                                                           "Prep", Path.GetFileName(info.FilePath) + ".tiff");
-                               var folder = Path.GetDirectoryName(realPath) ?? throw new InvalidOperationException();
+                               var preparationPath = GetPreparationPath(basePath, info);
+                               var folder = Path.GetDirectoryName(preparationPath) ?? throw new InvalidOperationException();
                                if (!Directory.Exists(folder))
                                    Directory.CreateDirectory(folder);
+
+                               var writeDate = File.GetLastWriteTime(realPath);
+                               var writeFile = preparationPath + ".prep";
+
+                               if (File.Exists(writeFile))
+                               {
+                                   try
+                                   {
+                                       using (var reader = new BinaryReader(new FileStream(writeFile, FileMode.Open)))
+                                       {
+                                           var oldTime = new DateTime(reader.ReadInt64());
+                                           if(writeDate == oldTime && File.Exists(preparationPath))
+                                               return Result.Create(new PreparedImageFileInfo(preparationPath.Replace(basePath, string.Empty), info, FindSettings(basePath, info, preparationPath)), true);
+                                       }
+                                   }
+                                   catch (Exception e) when(e is IOException)
+                                   {
+                                      
+                                   }
+                               }
 
                                IMagickImage img;
                                var          setting = info.IsResolutionUnKnowen ? new MagickReadSettings {Density = new Density(360, DensityUnit.PixelsPerInch)} : null;
@@ -207,19 +241,23 @@ namespace Simple_Scaler_2.Processing
 
 
                                    img.Settings.Compression = Compression.LZW; //.SetDefine("compress", "LZW");
-                                   img.Write(realPath);
+                                   img.Write(preparationPath);
                                }
 
-                               return Result.Create(new PreparedImageFileInfo(realPath, info, FindSettings(info, realPath), writeDate), true);
+                               using (var file = new BinaryWriter(new FileStream(writeFile, FileMode.Create)))
+                                   file.Write(writeDate.Ticks);
+
+                               return Result.Create(new PreparedImageFileInfo(preparationPath.Replace(basePath, string.Empty), info, FindSettings(basePath, info, preparationPath)), true);
                            });
         }
 
-        public Result GeneratePreview(string path, TransformSettings settings) => Transform(path, null, settings, true);
+        public Result GeneratePreview(string basePath, string path, TransformSettings settings) => Transform(basePath, path, null, settings, true);
 
-        public Result Transform(string path, string target, TransformSettings settings, bool generateOnlyPreview = false)
+        public Result Transform(string basePath, string relativePath, string target, TransformSettings settings, bool generateOnlyPreview = false)
         {
             return Protect(() =>
                            {
+                               var path = Path.Combine(basePath, relativePath.TrimStart('\\'));
                                var appSet = Settings.Default;
 
                                var checker = new Func<IMagickImage>(() => _magickFactory.CreateImage(Resources.JVS_Checker_1x1));
@@ -279,6 +317,7 @@ namespace Simple_Scaler_2.Processing
                                            return Result.Create(true, true);
                                        }
 
+                                       previewGen.Wait();
                                        var imgGen = Task.Run(() =>
                                                              {
                                                                  // ReSharper disable once AccessToDisposedClosure

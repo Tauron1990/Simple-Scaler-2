@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 using ImageMagick;
@@ -38,7 +38,7 @@ namespace Simple_Scaler_2.Processing
         }
 
         private readonly Dispatcher _dispatcher = Application.Current.Dispatcher;
-        private readonly Dictionary<string, PreparedImageFileInfo> _cache = new Dictionary<string, PreparedImageFileInfo>();
+        //private readonly Dictionary<string, PreparedImageFileInfo> _cache = new Dictionary<string, PreparedImageFileInfo>();
         private readonly Settings _settings = Settings.Default;
         private readonly string[] _filesFormats = MagickNET.SupportedFormats.Select(i => "." + i.Format.ToString()).ToArray();
         private FileSystemWatcher _fileWatcher = new FileSystemWatcher {IncludeSubdirectories = false, SynchronizingObject = new InternalSync(), NotifyFilter = NotifyFilters.LastAccess 
@@ -68,9 +68,20 @@ namespace Simple_Scaler_2.Processing
 
         public ObservableCollection<ImageFile> Files { get; set; } = new ObservableCollection<ImageFile>();
 
-        public PreparedImageFileInfo GetCache(string path) => _cache.TryGetValue(path, out var value) ? value : null;
+        //public PreparedImageFileInfo GetCache(string path) => _cache.TryGetValue(path, out var value) ? value : null;
 
-        public void SetCache(string path, PreparedImageFileInfo info) => _cache[path] = info;
+        //public void SetCache(string path, PreparedImageFileInfo info)
+        //{
+        //    lock (_cache)
+        //    {
+        //        _cache[path] = info;
+
+        //        if (_cache.Count <= 100) return;
+            
+        //        foreach (var key in _cache.OrderBy(i => i.Value.Lastedit).Take(10).Select(e => e.Key).ToArray())
+        //            _cache.Remove(key);
+        //    }
+        //}
 
         public void Initialize()
         {
@@ -146,7 +157,7 @@ namespace Simple_Scaler_2.Processing
             file.Error = null;
             file.Name = Path.GetFileName(path);
             file.Path = path;
-            var result = _transformer.GetInfo(path);
+            var result = _transformer.GetInfo(file.Folder.Path, path);
 
             switch (result)
             {
@@ -168,11 +179,18 @@ namespace Simple_Scaler_2.Processing
                 Files.Remove(file);
                 return;
             }
+            
+            if (!file.Folder.Path.StartsWith(renamedEventArgs.FullPath))
+            {
+                Files.Remove(file);
+                return;
+            }
 
             Fill(file, renamedEventArgs.FullPath);
 
             if (file.Error != null) Files.Remove(file);
-            
+
+            Task.Run(new Action(file.Prepare));
         }
 
         private void FileWatcherOnDeleted(object sender, FileSystemEventArgs fileSystemEventArgs)

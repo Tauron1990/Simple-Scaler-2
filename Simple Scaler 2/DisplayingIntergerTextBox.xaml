@@ -14,7 +14,7 @@
                              VerticalAlignment="{Binding VerticalAlignment, ElementName=Root}"
                              HorizontalAlignment="{Binding HorizontalAlignment, ElementName=Root}" />
         <TextBlock Name="TextBlock" Text="{Binding LabelText, ElementName=Root}" Margin="5" MinWidth="50"
-                   VerticalAlignment="{Binding VerticalAlignment, ElementName=Root}"
+                   VerticalAlignment="{Binding VerticalAlignment, ElementName=Root}" Foreground="Black"
                    HorizontalAlignment="{Binding HorizontalAlignment, ElementName=Root}" />
     </DockPanel>
 </UserControl>

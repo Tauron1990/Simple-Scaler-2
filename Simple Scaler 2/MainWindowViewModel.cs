@@ -429,7 +429,7 @@ namespace Simple_Scaler_2
                                                             UpdateLabels();
 
                                                             BusyLabel = "Vorschau wird Generiert";
-                                                            var result = _transformer.GeneratePreview(file.PreparedFileInfo.RealFile, settings);
+                                                            var result = _transformer.GeneratePreview(file.Folder.Path, file.PreparedFileInfo.RealFile, settings);
 
                                                             switch (result)
                                                             {
@@ -494,7 +494,7 @@ namespace Simple_Scaler_2
                                                         FillTransformSettings(settings);
                                                         UpdateLabels();
 
-                                                        var result = _transformer.GeneratePreview(SelectedImageFile.PreparedFileInfo.RealFile, settings);
+                                                        var result = _transformer.GeneratePreview(SelectedImageFile.Folder.Path, SelectedImageFile.PreparedFileInfo.RealFile, settings);
 
                                                         switch (result)
                                                         {
@@ -526,11 +526,19 @@ namespace Simple_Scaler_2
                                                     {
                                                         _selectionValid = false;
                                                         Log          = string.Empty;
+
+                                                        if (SelectedImageFile.Error != null)
+                                                        {
+                                                            Log += "Fehler: " + SelectedImageFile.Error.GetType() + Environment.NewLine;
+                                                            Log += "\t" + SelectedImageFile.Error.Message + Environment.NewLine;
+                                                            return;
+                                                        }
+
                                                         var settings = SelectedImageFile.PreparedFileInfo.TransformSettings;
                                                         FillTransformSettings(settings);
                                                         UpdateLabels();
 
-                                                        var result = _transformer.Transform(SelectedImageFile.PreparedFileInfo.RealFile, GetTransformPath(SelectedImageFile), settings);
+                                                        var result = _transformer.Transform(SelectedImageFile.Folder.Path, SelectedImageFile.PreparedFileInfo.RealFile, GetTransformPath(SelectedImageFile), settings);
 
                                                         switch (result)
                                                         {
@@ -549,6 +557,7 @@ namespace Simple_Scaler_2
 
                                                                 break;
                                                         }
+                                                        _dispatcher.Invoke(CommandManager.InvalidateRequerySuggested);
                                                     });
         }
 

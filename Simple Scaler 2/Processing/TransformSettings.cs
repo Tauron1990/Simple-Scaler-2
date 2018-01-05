@@ -1,10 +1,11 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Xml.Serialization;
 using JetBrains.Annotations;
 
 namespace Simple_Scaler_2.Processing
 {
-    [PublicAPI]
+    [PublicAPI, Serializable]
     public sealed class TransformSettings
     {
         private static readonly XmlSerializer TransformSerializer = new XmlSerializer(typeof(TransformSettings));

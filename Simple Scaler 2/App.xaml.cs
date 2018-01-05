@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Windows;
 using Microsoft.HockeyApp;
 using Simple_Scaler_2.Properties;
@@ -14,6 +15,8 @@ namespace Simple_Scaler_2
         {
             base.OnStartup(e);
             
+            
+
             //main configuration of HockeySDK
             HockeyClient.Current.Configure("b88853cfd2a1491f844830b7fa4bd8b3")
                         .UseCustomResourceManager(HokeyLocals.ResourceManager) //register your own resourcemanager to override HockeySDK i18n strings

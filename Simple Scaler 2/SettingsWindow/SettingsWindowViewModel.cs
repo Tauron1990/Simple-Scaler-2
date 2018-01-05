@@ -3,6 +3,7 @@ using System.Windows;
 using DevExpress.Mvvm;
 using DevExpress.Mvvm.DataAnnotations;
 using JetBrains.Annotations;
+using Microsoft.HockeyApp;
 using Ookii.Dialogs.Wpf;
 using Simple_Scaler_2.Properties;
 
@@ -12,7 +13,7 @@ namespace Simple_Scaler_2.SettingsWindow
     {
         private readonly Settings _settings = Settings.Default;
 
-        public Window Window { get; set; }
+        public Window Window { private get; set; }
 
         public string SourcePath
         {
@@ -63,5 +64,19 @@ namespace Simple_Scaler_2.SettingsWindow
 
         [Command, UsedImplicitly]
         public void GetSourcePath() => SourcePath = ShowFolderBrowserDialog(SourcePath);
+
+        [Command, UsedImplicitly]
+        public void CheckForUpdate()
+        {
+            #pragma warning disable 4014
+            HockeyClient.Current.CheckForUpdatesAsync(true, () =>
+            #pragma warning restore 4014
+                                                            {
+                                                                if (Application.Current.MainWindow != null)
+                                                                    Application.Current.MainWindow.Close();
+
+                                                                return true;
+                                                            });
+        }
     }
 }

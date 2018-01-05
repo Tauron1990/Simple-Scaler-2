@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -11,6 +12,9 @@ namespace Test
     {
         static void Main(string[] args)
         {
+            List<DateTime> dtest = new List<DateTime> { new DateTime(2017,1,1), new DateTime(2015,1,1), new DateTime(2016,1,1), new DateTime(2018,1,1) };
+            dtest = dtest.OrderBy(t => t).ToList();
+
             var features = MagickNET.Features;
             var magickFormatInfos = MagickNET.SupportedFormats.ToArray();
 
@@ -65,7 +69,7 @@ namespace Test
             Kor4y = -10;
 
             Transformer testTrans = new Transformer();
-            var transformSettings = testTrans.FindSettings(new ImageFileInfo(true, true, true, path, true, false, false), path);
+            var transformSettings = testTrans.FindSettings(String.Empty, new ImageFileInfo(true, true, true, path, true, false, false), path);
 
             Rand1x = transformSettings.Rand1X;
             Rand1y = transformSettings.Rand1Y;

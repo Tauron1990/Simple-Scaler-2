@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using JetBrains.Annotations;
 
 namespace Simple_Scaler_2.Processing
@@ -7,8 +6,11 @@ namespace Simple_Scaler_2.Processing
     [PublicAPI]
     public class ImageFile
     {
+        private readonly object _lock = new object();
         private readonly FileManager _manager;
         private readonly Transformer _transformer;
+        private Exception _error;
+        private PreparedImageFileInfo _preparedFileInfo;
 
         public string Name { get; set; }
 
@@ -16,9 +18,17 @@ namespace Simple_Scaler_2.Processing
 
         public ImageFileInfo FileInfo { get; set; }
 
-        public PreparedImageFileInfo PreparedFileInfo { get; private set; }
+        public PreparedImageFileInfo PreparedFileInfo
+        {
+            get { lock(_lock)return _preparedFileInfo; }
+            private set { lock(_lock)_preparedFileInfo = value; }
+        }
 
-        public Exception Error { get; set; }
+        public Exception Error
+        {
+            get { lock(_lock)return _error; }
+            set { lock(_lock)_error = value; }
+        }
 
         public Folder Folder { get; }
 
@@ -31,30 +41,34 @@ namespace Simple_Scaler_2.Processing
 
         public void Prepare()
         {
-            Error = null;
-            var writeTime = File.GetLastWriteTime(Path);
-
-            if(FileInfo == null || (PreparedFileInfo != null && PreparedFileInfo.Lastedit == writeTime)) return;
-
-            var info = _manager.GetCache(Path);
-
-            if (info != null && info.Lastedit == writeTime)
+            lock(_lock)
             {
-                PreparedFileInfo = info;
-                return;
-            }
+                _error = null;
+                //var writeTime = File.GetLastWriteTime(Path);
 
-            var result = _transformer.PrepareFile(FileInfo);
+                //if(FileInfo == null || _preparedFileInfo != null && _preparedFileInfo.Lastedit == writeTime) return;
 
-            switch (result)
-            {
-                case ExceptionResult exceptionResult:
-                    Error = exceptionResult.Exception;
-                    break;
-                case GenericResult<PreparedImageFileInfo> infoResult:
-                    PreparedFileInfo = infoResult.Result;
-                    _manager.SetCache(Path, info);
-                    break;
+                //var info = _manager.GetCache(Path);
+
+                //if (info != null && info.Lastedit == writeTime)
+                //{
+                //    _preparedFileInfo = info;
+                //    return;
+                //}
+
+                var result = _transformer.PrepareFile(Folder.Path, FileInfo);
+
+                switch (result)
+                {
+                    case ExceptionResult exceptionResult:
+                        _error = exceptionResult.Exception;
+                        break;
+                    case GenericResult<PreparedImageFileInfo> infoResult:
+                        _preparedFileInfo = infoResult.Result;
+                        FileInfo = _preparedFileInfo.FileInfo;
+                        //_manager.SetCache(Path, info);
+                        break;
+                }
             }
         }
     }

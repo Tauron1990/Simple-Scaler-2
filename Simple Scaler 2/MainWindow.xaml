@@ -11,7 +11,7 @@
     <Window.DataContext>
         <local:MainWindowViewModel />
     </Window.DataContext>
-    <Border Margin="10" BorderThickness="2" BorderBrush="Black">
+    <Border BorderThickness="2" BorderBrush="Black">
         <sync:SfBusyIndicator IsBusy="{Binding IsBusy}" Header="{Binding BusyLabel}" AnimationType="SingleCircle">
             <Grid>
                 <Grid.Resources>
